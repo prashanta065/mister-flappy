@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+  <title>Mister Flappy </title>
+  
+  <style>
+    body {
+        margin:0; overflow:hidden; font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #87ceeb 0%, #98d8e8 100%);
+    }
+    canvas { display:block; }
+    #ui {
+        position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10;
+    }
+    /* === Updated Menu Style === */
+    #menu {
+        position:absolute; top:0; left:0; width:100%; height:100%;
+        display:flex; flex-direction:column; justify-content:center; align-items:center;
+        text-align:center; color:white; pointer-events:auto;
+        background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+        backdrop-filter: blur(18px);
+        padding: 40px 20px;
+    }
+    #menu .logo {
+        width: 140px;
+        margin-bottom: 30px;
+        filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+    }
+    .menu-card {
+        background: rgba(255,255,255,0.07);
+        border: 2px solid rgba(255,255,255,0.15);
+        border-radius: 25px;
+        padding: 40px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        text-align: center;
+    }
+    .menu-card h1 {
+        font-size:4em; margin:0 0 20px; text-shadow:0 2px 10px rgba(0,0,0,0.3);
+        /* keep previous text style but adjust a bit */
+        background: linear-gradient(45deg, #ffffff, #aee1ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    /* === Responsive Fix for Game Over Screen === */
+@media (max-width: 768px) {
+    #gameOverScreen {
+        padding: 20px;
+    }
+    #gameOverScreen h2 {
+        font-size: 2.5em;       /* shrink big title */
+        margin-bottom: 10px;
+    }
+    #finalScore,
+    #highScoreMsg,
+    #displayHighScore {
+        font-size: 1.2em;       /* scale down text */
+    }
+    #gameOverScreen .button {
+        width: 80%;             /* full-width buttons for easy tapping */
+        max-width: 280px;
+        padding: 12px;
+        font-size: 1em;
+    }
+}
+
+@media (max-width: 480px) {
+    #gameOverScreen h2 {
+        font-size: 2em;
+    }
+    #finalScore,
+    #highScoreMsg,
+    #displayHighScore {
+        font-size: 1em;
+    }
+    #gameOverScreen .button {
+        width: 90%;
+        padding: 10px;
+        font-size: 0.9em;
+    }
+}
+
+    .menu-card p {
+        font-size:1.3em;
+        color: rgba(255,255,255,0.85);
+        margin-bottom:30px;
+    }
+    .character-grid {
+        display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:20px; margin-bottom:30px;
+    }
+    .character-card {
+        background:rgba(255,255,255,0.1); border-radius:15px; padding:20px; cursor:pointer;
+        transition:all 0.3s ease; border:2px solid transparent;
+    }
+    .character-card:hover, .character-card.selected {
+        background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.5);
+        transform:translateY(-5px) scale(1.03);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+    .character-card .emoji { font-size:3em; display:block; margin-bottom:10px; }
+    #startBtn {
+        display:none; padding:12px 30px; font-size:1.2em; font-weight:600;
+        border:none; border-radius:50px; background:linear-gradient(145deg,#4CAF50,#45a049);
+        cursor:pointer; transition:all 0.3s ease;
+    }
+    #startBtn:hover { transform:translateY(-2px); background:linear-gradient(145deg,#45a049,#4CAF50); }
+
+    /* Other UI parts unchanged */
+    #scoreUI { position:absolute; top:20px; left:50%; transform:translateX(-50%);
+        font-size:1.5em; background:rgba(0,0,0,0.5); padding:10px 20px; border-radius:25px; display:none;
+    }
+    #countdown { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+        font-size:10em; display:none; text-shadow:0 0 30px rgba(255,255,255,0.8);
+    }
+    #gameOverScreen {
+        position:absolute; top:0; left:0; width:100%; height:100%;
+        display:flex; flex-direction:column; justify-content:center; align-items:center;
+        text-align:center; color:white; pointer-events:auto;
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index:20;
+    }
+    #gameOverScreen h2 { font-size:4em; background:linear-gradient(45deg,#ff4757,#ff6b7a);
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    #gameOverScreen .button {
+        margin:10px; padding:12px 30px; font-size:1.2em; border-radius:50px;
+        background:linear-gradient(145deg,#667eea,#764ba2); border:none; color:white; cursor:pointer; transition:all 0.3s ease;
+    }
+    #gameOverScreen .button:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(102,126,234,0.4); }
+    #footer { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.8); font-size:0.9em; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <!-- Updated Menu with Logo and Glass-Card -->
+    <div id="menu">
+      <div class="menu-card">
+        <img src="./logo.png" alt="Mister Flappy Logo" class="logo">
+        <h1>Mister Flappy</h1>
+        <p>Select Your Character</p>
+        <div class="character-grid">
+          <div class="character-card" onclick="selectCharacter('bird')" id="birdCard"><span class="emoji">🐦</span>Bird</div>
+          <div class="character-card" onclick="selectCharacter('penguin')" id="penguinCard"><span class="emoji">🐧</span>Penguin</div>
+          <div class="character-card" onclick="selectCharacter('robot')" id="robotCard"><span class="emoji">🤖</span>Robot</div>
+        </div>
+        <button id="startBtn" onclick="startCountdown()">🚀 Start Game</button>
+      </div>
+    </div>
+
+    <div id="scoreUI">Score: <span id="score">0</span> | High Score: <span id="highScore">0</span></div>
+    <div id="countdown">3</div>
+  </div>
+  <div id="gameOverScreen">
+    <h2>Game Over!</h2>
+    <div id="finalScore">Final Score: 0</div>
+    <p id="highScoreMsg" style="display:none;">New High Score! 🎉</p>
+    <p>Your High Score: <span id="displayHighScore">0</span></p>
+    <button class="button" onclick="playAgain()">Play Again</button>
+    <button class="button" onclick="restartGame()">Main Menu</button>
+  </div>
+  <div id="footer">Developed by MrBhusal</div>
+  <canvas id="gameCanvas"></canvas>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let charX, charY, charRadius=25;
+    function resizeCanvas(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; charX=canvas.width/4; charY=canvas.height/2;}
+    resizeCanvas(); window.addEventListener('resize',resizeCanvas);
+
+    let character=null, gameRunning=false, score=0, highScore=parseInt(localStorage.getItem('highScore'))||0, velocity=0, gravity=0.5, lift=-12, pipes=[], pipeWidth=70, pipeGap=250, spawnCounter=0, frameCount=0;
+    let jumpSound, hitSound, scoreSound, bgMusic;
+
+    // Initialize sounds
+    hitSound=new Howl({src:['./hit.mp3'],volume:0.5});
+    scoreSound=new Howl({src:['./point.mp3'],volume:0.3});
+    bgMusic=new Howl({src:['./bgm.mp3'],loop:true,volume:0.2});
+
+    const characters={
+      bird:{name:'Bird', poleColor:'#228B22', groundColor:'#32CD32', jumpUrl:'./jump1.mp3',
+        draw:function(x,y){
+          ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.ellipse(x,y,20,15,0,0,Math.PI*2); ctx.fill();
+          const flap=Math.sin(frameCount*0.3)*0.3;
+          ctx.save(); ctx.translate(x-8,y+2); ctx.rotate(flap); ctx.fillStyle='#FFA500';
+          ctx.beginPath(); ctx.ellipse(0,0,12,8,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+          ctx.fillStyle='#FF4500'; ctx.beginPath(); ctx.moveTo(x+18,y); ctx.lineTo(x+28,y-3); ctx.lineTo(x+28,y+3); ctx.closePath(); ctx.fill();
+          ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(x+8,y-5,5,0,Math.PI*2); ctx.fill(); ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(x+10,y+5-10,2,0,Math.PI*2); ctx.fill();
+        },
+        background:function(){
+          const grad=ctx.createLinearGradient(0,0,0,canvas.height); grad.addColorStop(0,'#87CEEB'); grad.addColorStop(1,'#E0F6FF'); ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.fillStyle='rgba(255,255,255,0.8)'; for(let i=0;i<5;i++){ const cloudX=(i*150+frameCount*0.5)%(canvas.width+100)-50; const cloudY=100+i*50; ctx.beginPath(); ctx.arc(cloudX,cloudY,30,0,Math.PI*2); ctx.arc(cloudX+40,cloudY,40,0,Math.PI*2); ctx.arc(cloudX+80,cloudY,30,0,Math.PI*2); ctx.fill();}
+          ctx.fillStyle=this.groundColor; ctx.fillRect(0,canvas.height-80,canvas.width,80);
+        }
+      },
+      penguin:{name:'Penguin', poleColor:'#ADD8E6', groundColor:'#F0F8FF', jumpUrl:'./jump2.mp3',
+        draw:function(x,y){
+          ctx.fillStyle='#000000'; ctx.beginPath(); ctx.ellipse(x,y+10,18,25,0,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='white'; ctx.beginPath(); ctx.ellipse(x,y+15,12,18,0,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='#000000'; ctx.beginPath(); ctx.arc(x,y-5,12,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(x-4,y-8,4,0,Math.PI*2); ctx.arc(x+4,y-8,4,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(x-2,y-8,2,0,Math.PI*2); ctx.arc(x+6,y-8,2,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.moveTo(x+15,y-2); ctx.lineTo(x+25,y-5); ctx.lineTo(x+25,y+5); ctx.closePath(); ctx.fill();
+          ctx.fillStyle='#FF4500'; ctx.beginPath(); ctx.ellipse(x-8,y+30,6,4,0,0,Math.PI*2); ctx.ellipse(x+8,y+30,6,4,0,0,Math.PI*2); ctx.fill();
+        },
+        background:function(){
+          const grad=ctx.createLinearGradient(0,0,0,canvas.height); grad.addColorStop(0,'#A0E7FF'); grad.addColorStop(1,'#B0E0E6'); ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.fillStyle='#E0FFFF'; for(let i=0;i<4;i++){ const mountainX=(i*200+frameCount*0.3)%(canvas.width+100)-50; ctx.beginPath(); ctx.moveTo(mountainX,canvas.height-80); ctx.lineTo(mountainX+100,canvas.height-200); ctx.lineTo(mountainX+200,canvas.height-80); ctx.fill();}
+          ctx.fillStyle=this.groundColor; ctx.fillRect(0,canvas.height-80,canvas.width,80);
+          ctx.fillStyle='rgba(255,255,255,0.8)'; for(let i=0;i<50;i++){ const snowX=(i*20+frameCount*0.8)%canvas.width; const snowY=(frameCount*2+i*10)%canvas.height; ctx.beginPath(); ctx.arc(snowX,snowY,2,0,Math.PI*2); ctx.fill();}
+        }
+      },
+      robot:{name:'Robot', poleColor:'#00FFFF', groundColor:'#333333', jumpUrl:'./jump3.mp3',
+        draw:function(x,y){
+          ctx.fillStyle='#C0C0C0'; ctx.fillRect(x-15,y,30,40); ctx.beginPath(); ctx.arc(x,y-10,12,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle='#FF00FF'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x-8,y-22); ctx.lineTo(x-8,y-35); ctx.moveTo(x+8,y-22); ctx.lineTo(x+8,y-35); ctx.stroke(); ctx.lineWidth=1;
+          ctx.fillStyle='#00FFFF'; ctx.beginPath(); ctx.arc(x-5,y-10,3,0,Math.PI*2); ctx.arc(x+5,y-10,3,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='#C0C0C0'; ctx.fillRect(x-20,y+5,8,15); ctx.fillRect(x+12,y+5,8,15); ctx.fillRect(x-8,y+35,6,15); ctx.fillRect(x+2,y+35,6,15);
+          const thrust=Math.sin(frameCount*0.4)>0?'#FF4500':'#C0C0C0'; ctx.fillStyle=thrust; ctx.beginPath(); ctx.ellipse(x-4,y+50,4,8,0,0,Math.PI*2); ctx.ellipse(x+4,y+50,4,8,0,0,Math.PI*2); ctx.fill();
+        },
+        background:function(){
+          ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.strokeStyle='rgba(0,255,255,0.1)'; ctx.lineWidth=1; for(let i=0;i<canvas.width;i+=50){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,canvas.height);ctx.stroke();}
+          for(let j=0;j<canvas.height;j+=50){ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(canvas.width,j);ctx.stroke();}
+          ctx.fillStyle='#00FFFF'; for(let i=0;i<20;i++){const px=(i*100+frameCount*2)%canvas.width; const py=(frameCount*1.5+i*30)%canvas.height; ctx.beginPath();ctx.arc(px,py,2,0,Math.PI*2);ctx.fill();}
+          ctx.fillStyle=this.groundColor; ctx.fillRect(0,canvas.height-80,canvas.width,80);
+        }
+      }
+    };
+
+    function selectCharacter(char){character=characters[char]; jumpSound=new Howl({src:[character.jumpUrl],volume:0.4});
+      document.querySelectorAll('.character-card').forEach(c=>c.classList.remove('selected'));
+      document.getElementById(char+'Card').classList.add('selected');
+      document.getElementById('startBtn').style.display='block';
+    }
+
+    function startCountdown(){if(!character) selectCharacter('bird'); document.getElementById('menu').style.display='none';
+      const countdownEl=document.getElementById('countdown'); countdownEl.style.display='block'; let count=3;
+      countdownEl.textContent=count; const interval=setInterval(()=>{count--; if(count>0){countdownEl.textContent=count;} else{clearInterval(interval);countdownEl.style.display='none'; startGame();}},1000);
+    }
+
+    function startGame(){gameRunning=true; score=0; velocity=0; pipes=[]; spawnCounter=0; frameCount=0; charY=canvas.height/2; charX=canvas.width/4;
+      document.getElementById('scoreUI').style.display='block'; document.getElementById('score').textContent='0';
+      document.getElementById('highScore').textContent=highScore; if(bgMusic) bgMusic.play(); requestAnimationFrame(gameLoop);
+    }
+
+    function playAgain(){document.getElementById('gameOverScreen').style.display='none'; startCountdown();}
+    function restartGame(){document.getElementById('gameOverScreen').style.display='none'; document.getElementById('menu').style.display='flex';
+      document.getElementById('startBtn').style.display='none'; document.querySelectorAll('.character-card').forEach(c=>c.classList.remove('selected'));
+      character=null; gameRunning=false; if(bgMusic) bgMusic.stop();
+    }
+
+    window.addEventListener('keydown', e=>{ if(e.code==='Space'&&gameRunning){ velocity=lift; if(jumpSound) jumpSound.play(); }});
+    canvas.addEventListener('touchstart', e=>{ e.preventDefault(); if(gameRunning){ velocity=lift; if(jumpSound) jumpSound.play(); }});
+
+    function spawnPipe(){ const topHeight=Math.random()*(canvas.height-pipeGap-200)+100; pipes.push({x:canvas.width,topHeight:topHeight,scored:false}); }
+
+    function gameLoop(){
+      if(!gameRunning) return; frameCount++; ctx.clearRect(0,0,canvas.width,canvas.height); character.background();
+      ctx.fillStyle=character.poleColor; for(let i=pipes.length-1;i>=0;i--){
+        const p=pipes[i]; p.x-=5;
+        ctx.fillRect(p.x,0,pipeWidth,p.topHeight); ctx.fillRect(p.x,p.topHeight+pipeGap,pipeWidth,canvas.height-p.topHeight-pipeGap);
+        if(p.x+pipeWidth<0) {pipes.splice(i,1); continue;}
+        const charRight=charX+charRadius; const charLeft=charX-charRadius; const pipeRight=p.x+pipeWidth; const pipeLeft=p.x;
+        if(charRight>pipeLeft && charLeft<pipeRight){
+          if(charY-charRadius<p.topHeight||charY+charRadius>p.topHeight+pipeGap){gameOver(); return;}
+        }
+        if(!p.scored && p.x+pipeWidth<charX){score++; p.scored=true; document.getElementById('score').textContent=score; if(scoreSound) scoreSound.play();}
+      }
+
+      charY+=velocity; velocity+=gravity; character.draw(charX,charY);
+      const groundY=canvas.height-80-charRadius; if(charY>groundY||charY-charRadius<0){gameOver(); return;}
+      spawnCounter++; if(spawnCounter%120===0) spawnPipe();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function gameOver(){gameRunning=false; if(bgMusic) bgMusic.stop(); if(hitSound) hitSound.play();
+      document.getElementById('scoreUI').style.display='none'; document.getElementById('gameOverScreen').style.display='flex';
+      document.getElementById('finalScore').textContent=`Final Score: ${score}`; document.getElementById('displayHighScore').textContent=highScore;
+      const isNewHigh=score>highScore; if(isNewHigh){highScore=score; localStorage.setItem('highScore',highScore);
+        document.getElementById('highScoreMsg').style.display='block'; document.getElementById('highScoreMsg').textContent='New High Score! 🎉';}
+      else document.getElementById('highScoreMsg').style.display='none';
+    }
+
+    document.getElementById('highScore').textContent=highScore;
+  </script>
+</body>
+</html>
